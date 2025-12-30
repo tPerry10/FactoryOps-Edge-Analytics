@@ -1,0 +1,38 @@
+services:
+  mqtt:
+    image: eclipse-mosquitto:latest
+    ports:
+      - "1883:1883"
+      - "9001:9001" # websocket port
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+  timescale:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_PASSWORD: factory
+      POSTGRES_USER: factory
+      POSTGRES_DB: factory
+    ports:
+      - "5432:5432"
+    volumes:
+      - ts_data:/var/lib/postgresql/data
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+  ingestion:
+    build: .
+    depends_on:
+      - timescale
+      - mqtt
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://timescale:5432/factory
+      MQTT_URL: tcp://mqtt:1883
+
+volumes:
+  ts_data:
+  grafana_data:
